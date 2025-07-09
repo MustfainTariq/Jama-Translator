@@ -1,0 +1,14 @@
+livekit-agents
+livekit-plugins-openai
+python-dotenv
+livekit-plugins-speechmatics
+livekit-plugins-silero
+openai
+fastapi
+uvicorn
+websockets
+aiohttp
+supabase
+asyncpg
+httpx
+pydantic

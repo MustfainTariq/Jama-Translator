@@ -1,0 +1,80 @@
+services:
+  # LiveKit Translation Backend (Python)
+  livekit-translation-backend:
+    build:
+      context: ./LiveKit-ai-translation/server
+      dockerfile: Dockerfile
+    container_name: bayan-livekit-backend
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LIVEKIT_URL=${LIVEKIT_URL}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - SPEECHMATICS_API_KEY=${SPEECHMATICS_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - WEBSOCKET_LOGGER_URL=${WEBSOCKET_LOGGER_URL}
+    networks:
+      - bayan-network
+    restart: unless-stopped
+    volumes:
+      - ./LiveKit-ai-translation/server:/app
+    command: python main.py dev
+
+  # Bayan Admin Panel (React + Nginx)
+  bayan-admin:
+    build:
+      context: ./bayan-platform-admin
+      dockerfile: Dockerfile
+    container_name: bayan-admin-panel
+    ports:
+      - "3000:80"  # Admin panel accessible at localhost:3000
+    environment:
+      - VITE_SUPABASE_URL=${SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+    networks:
+      - bayan-network
+    restart: unless-stopped
+
+  # Display Server (Python FastAPI)
+  display-server:
+    build:
+      context: ./LiveKit-ai-translation/server
+      dockerfile: Dockerfile
+    container_name: bayan-display-server
+    ports:
+      - "8080:8080"  # Display server accessible at localhost:8080
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LIVEKIT_URL=${LIVEKIT_URL}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    networks:
+      - bayan-network
+    restart: unless-stopped
+    volumes:
+      - ./LiveKit-ai-translation/server:/app
+    command: python web_server.py
+
+  # Redis (for caching and session management)
+  redis:
+    image: redis:7-alpine
+    container_name: bayan-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - bayan-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  bayan-network:
+    driver: bridge
+    name: bayan-translation-network 
